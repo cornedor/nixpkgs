@@ -1,0 +1,12 @@
+nginx/log/*
+!nginx/log/.gitkeep
+
+php/run/phpfpm/*
+!php/run/phpfpm/.gitkeep
+
+php/tmp/*
+!php/tmp/.gitkeep
+
+*.pem
+*.log
+*.pid
