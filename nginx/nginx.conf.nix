@@ -62,5 +62,7 @@ http {
     #   fastcgi_param SCRIPT_NAME $fastcgi_script_name;
     # }
   }
+
+  include "${wwwRootDir}/etc/nginx/*.conf";
 }
 ''

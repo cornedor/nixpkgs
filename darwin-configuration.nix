@@ -9,17 +9,20 @@ let
 
   phpConf = (import ./php/phpfpm-nginx.conf.nix) { inherit pkgs phpDir ;};
   nginxConf = (import ./nginx/nginx.conf.nix) {inherit pkgs nginxDir phpDir wwwRootDir; };
+
+  php = pkgs.php74.buildEnv {
+    extraConfig = ''
+      memory_limit = 2G
+      xdebug.mode = debug
+      xdebug.start_with_request = yes
+    '';
+    extensions = { all, enabled, ... }: enabled ++ [ all.imagick all.xdebug ];
+  };
 in
 {
   # List packages installed in system profile. To search by name, run:
   # $ nix-env -qaP | grep wget
-  environment.systemPackages =
-    let 
-      php = pkgs.php74.buildEnv {
-        extraConfig = "memory_limit = 2G";
-        extensions = { all, enabled, ... }: enabled ++ [ all.imagick ];
-      };
-    in [
+  environment.systemPackages = [
       ## Core
       pkgs.coreutils
       pkgs.wget
@@ -63,27 +66,29 @@ in
   environment.shellAliases.nginx = "nginx -p ${nginxDir}/tmp -c ${nginxConf}";
   environment.shellAliases.mysqld = "mysqld --datadir=/usr/local/var/mysql/ --socket=/tmp/mysql.sock";
 
-  programs.zsh.loginShellInit = ''
-    startLEMP() {
-      if test -f ${nginxDir}/logs/nginx.pid && ps -p $(cat ${nginxDir}/logs/nginx.pid) > /dev/null; then
-        echo "nginx already started"
-      else
-        echo "Starting nginx..."
-        ${pkgs.nginx}/bin/nginx -p ${nginxDir}/tmp  -c ${nginxConf}
-      fi
-
-      if test -f ${phpDir}/tmp/php-fpm.pid && ps -p $(cat ${phpDir}/tmp/php-fpm.pid) > /dev/null; then
-        echo "php-fpm already started"
-      else
-        echo "Starting php-fpm..."
-        ${pkgs.php}/bin/php-fpm -p ${phpDir} -y ${phpConf}
-      fi
+  launchd.user.agents.nginx = {
+    command = "${pkgs.nginx}/bin/nginx -p ${nginxDir}/tmp -c ${nginxConf}";
+    path = [pkgs.nginx];
+    serviceConfig = {
+      KeepAlive = true;
     };
+  };
 
-    stopLEMP() {
+  launchd.user.agents.mysqld = {
+    command = "mysqld --datadir=/usr/local/var/mysql/ --socket=/tmp/mysql.sock";
+    path = [pkgs.mysql];
+    serviceConfig = {
+      KeepAlive = true;
+    };
+  };
 
-    }
-  '';
+  launchd.user.agents."php-fpm" = {
+    command = "${php}/bin/php-fpm -p ${phpDir} -y ${phpConf}";
+    path = [php];
+    serviceConfig = {
+      KeepAlive = true;
+    };
+  };
 
   # Use a custom configuration.nix location.
   # $ darwin-rebuild switch -I darwin-config=$HOME/.config/nixpkgs/darwin/configuration.nix
