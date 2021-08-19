@@ -20,6 +20,8 @@ let
   };
 in
 {
+  nixpkgs.config.allowUnfree = true;
+  
   # List packages installed in system profile. To search by name, run:
   # $ nix-env -qaP | grep wget
   environment.systemPackages = [
@@ -38,8 +40,11 @@ in
       pkgs.libvirt
       # pkgs.virt-manager-qt
 
+      pkgs.thefuck
+
       ## Networking
       pkgs.dig
+      pkgs.nextdns
 
       ## JavaScript Development
       pkgs.nodejs
@@ -58,6 +63,12 @@ in
       pkgs.mkcert
       pkgs.nss
       pkgs.nssTools
+
+      # Other languages
+      pkgs.go
+      pkgs.rustc
+
+      pkgs.vscode-with-extensions
 
     ];
 
